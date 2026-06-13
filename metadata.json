@@ -1,0 +1,6 @@
+{
+  "name": "Peigireto",
+  "description": "پیگیرتو (Peigireto) - مربی هوش مصنوعی مسئولیت‌پذیری و غلبه بر اهمال‌کاری روزانه",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
