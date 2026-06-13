@@ -22,13 +22,9 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // OTP Verification States
+  // Phone Number Onboarding States (OTP disabled as per user request)
   const [phone, setPhone] = useState<string>("");
-  const [code, setCode] = useState<string>("");
-  const [isOtpSent, setIsOtpSent] = useState<boolean>(false);
   const [isOtpVerified, setIsOtpVerified] = useState<boolean>(false);
-  const [otpLoading, setOtpLoading] = useState<boolean>(false);
-  const [simulationCode, setSimulationCode] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Omit<UserProfile, "hasCompletedOnboarding">>({
     fullName: "",
@@ -42,72 +38,13 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
     personality: "Friend"
   });
 
-  // SMS OTP Handlers for Meli Payamak REST API integration
-  const handleSendOtp = async () => {
-    if (!phone || phone.trim().length < 10) {
-      setError("لطفاً شماره موبایل ۱۱ رقمی معتبری وارد کنید.");
+  const handleProceedWithPhone = () => {
+    if (!phone || phone.trim().length < 11) {
+      setError("لطفاً شماره موبایل ۱۱ رقمی معتبری وارد کنید (مانند 09123456789).");
       return;
     }
-    setOtpLoading(true);
     setError(null);
-    setSimulationCode(null);
-
-    try {
-      const response = await fetch("/api/auth/otp/send", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ phoneNumber: phone })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "خطا در ارسال پیامک فعال‌ساز");
-      }
-
-      setIsOtpSent(true);
-      if (data.simulated && data.code) {
-        setSimulationCode(data.code);
-      }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "خطایی در فرآیند ارسال پیامک رخ داد. اتصال را بررسی کنید.");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    if (!code || code.trim().length < 4) {
-      setError("لطفاً کد تأیید دریافتی را کامل وارد کنید.");
-      return;
-    }
-    setOtpLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/auth/otp/verify", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ phoneNumber: phone, code })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "کد تأیید وارد شده نامعتبر است.");
-      }
-
-      setIsOtpVerified(true);
-      setError(null);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "کد تأیید نادرست است یا زمان اعتبار آن به پایان رسیده است.");
-    } finally {
-      setOtpLoading(false);
-    }
+    setIsOtpVerified(true);
   };
 
   // 4 Target MVP Questions + Style Choice Screen
@@ -275,69 +212,34 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             </div>
           </div>
 
-          <div className="flex flex-col min-h-[300px]">
+          <div className="flex flex-col min-h-[250px]">
             <div className="flex items-start gap-4 mb-6">
               <div className="p-3 bg-[#1E1E28] border border-[#2A2A35]/60 rounded-xl">
                 <Sparkles className="w-8 h-8 text-rose-400" />
               </div>
               <div>
-                <span className="text-[10px] text-slate-500 block font-mono mb-1 font-bold uppercase">احراز هویت پیامکی</span>
+                <span className="text-[10px] text-slate-500 block font-mono mb-1 font-bold uppercase">ثبت‌نام و شروع مسیر</span>
                 <h2 className="text-base font-bold text-white tracking-tight leading-relaxed">ورود به مربی مسئولیت‌پذیری</h2>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  برای طراحی دی‌ان‌ای بهره‌وری و دریافت یادآورهای منظم مربی در گوشی خود، شماره همراهتان را تایید کنید.
+                  برای طراحی شناسنامه بهره‌وری و دریافت روزانه یادآور تداوم عادات در گوشی خود، شماره همراهتان را ثبت کنید.
                 </p>
               </div>
             </div>
 
             <div className="flex-1 mb-6 space-y-4">
-              {!isOtpSent ? (
-                <div>
-                  <label className="text-xs text-slate-400 block mb-1.5 font-bold">شماره موبایل همراه شما:</label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="مثال: 09123456789"
-                    className="w-full bg-[#0F0F12] border border-[#2A2A35] focus:border-rose-500 outline-none rounded-xl p-4 text-center text-sm tracking-widest text-slate-100 placeholder:text-slate-600 leading-relaxed focus:ring-1 focus:ring-rose-500 transition-all font-sans font-bold"
-                  />
-                  <p className="text-[10px] text-slate-500 mt-2.5 leading-relaxed text-right">
-                    کد فعال‌سازی با سامانه ملی پیامک برای شماره شما ارسال خواهد گردید.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-slate-400 block mb-1.5 font-bold">کد ۵ رقمی تایید پیامکی:</label>
-                    <input
-                      type="text"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      maxLength={5}
-                      placeholder="• • • • •"
-                      className="w-full bg-[#0F0F12] border border-[#2A2A35] focus:border-rose-500 outline-none rounded-xl p-4 text-center text-lg tracking-widest text-[#F43F5E] placeholder:text-slate-600 font-extrabold focus:ring-1 focus:ring-rose-500 transition-all font-mono"
-                    />
-                    <div className="flex justify-between items-center mt-2.5">
-                      <button
-                        type="button"
-                        onClick={() => { setIsOtpSent(false); setSimulationCode(null); }}
-                        className="text-[10px] text-rose-400 hover:underline font-semibold"
-                      >
-                        تغییر شماره موبایل ({phone})
-                      </button>
-                      <span className="text-[10px] text-slate-500 font-sans">کد معتبر برای ۳ دقیقه</span>
-                    </div>
-                  </div>
-
-                  {simulationCode && (
-                    <div className="p-3.5 bg-yellow-950/20 border border-yellow-850/40 rounded-xl">
-                      <span className="text-[10px] text-yellow-500 font-extrabold block">💡 راهنما شبیه‌ساز (سامانه تست):</span>
-                      <p className="text-[10px] text-slate-300 mt-1 leading-relaxed">
-                        کد صادر شده فرضی: <strong className="text-yellow-400 font-mono text-xs">{simulationCode}</strong> می‌باشد. لطفاً آن را وارد کنید تا ادامه دهیم.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5 font-bold">شماره موبایل شما:</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="مثال: 09123456789"
+                  className="w-full bg-[#0F0F12] border border-[#2A2A35] focus:border-rose-500 outline-none rounded-xl p-4 text-center text-sm tracking-widest text-slate-100 placeholder:text-slate-600 leading-relaxed focus:ring-1 focus:ring-rose-500 transition-all font-sans font-bold"
+                />
+                <p className="text-[10px] text-slate-500 mt-2.5 leading-relaxed text-right">
+                  شماره شما برای ایجاد اکانت و شخصی‌سازی تنظیمات چالش‌های رفتاری ذخیره می‌شود.
+                </p>
+              </div>
             </div>
 
             {error && (
@@ -347,45 +249,14 @@ export default function Onboarding({ onComplete }: OnboardingProps) {
             )}
 
             <div className="mt-auto">
-              {!isOtpSent ? (
-                <button
-                  type="button"
-                  onClick={handleSendOtp}
-                  disabled={otpLoading}
-                  className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white hover:shadow-lg hover:shadow-rose-500/10 transition-all rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
-                >
-                  {otpLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="font-sans text-xs">در حال ارسال...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <span>ارسال کد تایید پیامک</span>
-                      <ChevronLeft className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleVerifyOtp}
-                  disabled={otpLoading}
-                  className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white hover:shadow-lg hover:shadow-emerald-500/10 transition-all rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-60"
-                >
-                  {otpLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      <span className="text-xs">درحال بررسی کد...</span>
-                    </div>
-                  ) : (
-                    <>
-                      <span>تایید و ورود به پیگیرتو</span>
-                      <ChevronLeft className="w-4 h-4" />
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleProceedWithPhone}
+                className="w-full py-3.5 bg-gradient-to-r from-rose-500 to-indigo-600 hover:from-rose-600 hover:to-indigo-700 text-white hover:shadow-lg hover:shadow-rose-500/10 transition-all rounded-xl text-sm font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>ثبت شماره و ادامه مسیر</span>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
